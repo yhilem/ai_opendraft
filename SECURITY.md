@@ -10,7 +10,7 @@ Use this section to tell people about which versions of your project are current
 
 ## Reporting a Vulnerability
 
-Please report security vulnerabilities to: security@yourdomain.com
+Please report security vulnerabilities to: security@opendraft.xyz
 
 We will respond within 24 hours and provide updates every 72 hours until resolution.
 

@@ -46,7 +46,7 @@ python draft_generator.py --topic "Your research topic" --level master
 
 ## Environment Variables
 
-Required in `../.env.local`:
+Required in `.env` (project root):
 
 ```bash
 GEMINI_API_KEY=your-key      # Required

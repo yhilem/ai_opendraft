@@ -1,6 +1,6 @@
 ---
 name: Bug Report
-about: Report a bug to help us improve Academic Draft AI
+about: Report a bug to help us improve OpenDraft
 title: '[BUG] '
 labels: bug
 assignees: ''
@@ -49,7 +49,7 @@ Add any other context about the problem here:
 - API rate limiting encountered
 
 ## Checklist
-- [ ] I have checked the [FAQ](../docs/FAQ.md) for similar issues
+- [ ] I have checked the [README FAQ](../../README.md#faq) for similar issues
 - [ ] I have reviewed the [documentation](../README.md)
 - [ ] I have searched existing issues to avoid duplicates
 - [ ] I have included error messages and logs

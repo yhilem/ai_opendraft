@@ -32,7 +32,7 @@
 
 <!-- Describe the tests you ran to verify your changes -->
 
-- [ ] Unit tests pass (`npm run test` or `pytest`)
+- [ ] Unit tests pass (`pytest`)
 - [ ] E2E tests pass (if applicable)
 - [ ] Manual testing completed
 - [ ] All checks pass (`opendraft verify`)
@@ -49,7 +49,7 @@
 <!-- Mark completed items with an 'x' -->
 
 - [ ] My code follows the project's code style
-- [ ] I have run linting (`npm run lint` or `pylint`)
+- [ ] I have run linting (`pylint` or `ruff`)
 - [ ] I have added tests that prove my fix is effective or that my feature works
 - [ ] I have updated the documentation accordingly
 - [ ] I have added myself to CONTRIBUTORS.md (if applicable)

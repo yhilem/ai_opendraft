@@ -1,6 +1,6 @@
 ---
 name: Feature Request
-about: Suggest a new feature or enhancement for Academic Draft AI
+about: Suggest a new feature or enhancement for OpenDraft
 title: '[FEATURE] '
 labels: enhancement
 assignees: ''
