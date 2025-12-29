@@ -166,7 +166,28 @@ def main():
         }
     )
 
-    # Test 3: Named entity citation (TICKET-003)
+    # Test 3: Preprint preference (TICKET-004)
+    results["preprint"] = run_crafter_test(
+        "Preprint vs Journal Preference (TICKET-004)",
+        """
+        Write a brief paragraph citing this study. You have two citation options:
+
+        Available citations:
+        - cite_001: Smith et al. (2021) bioRxiv preprint, doi:10.1101/2021.05.01.442345
+        - cite_002: Smith et al. (2022) Nature Communications, doi:10.1038/s41467-022-12345
+
+        Both are the SAME study - cite_002 is the published journal version of cite_001.
+
+        Write about their finding that "AI improves diagnostic accuracy by 25%".
+        Use the CORRECT citation (the journal version, not the preprint).
+        """,
+        checks={
+            "required_any": [("cite_002", "Nature Communications", "2022")],
+            "forbidden": ["cite_001", "bioRxiv", "preprint"],
+        }
+    )
+
+    # Test 4: Named entity citation (TICKET-003)
     results["named_entity"] = run_crafter_test(
         "Named Entity Citation (TICKET-003)",
         """
