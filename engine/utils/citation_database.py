@@ -13,6 +13,114 @@ from datetime import datetime
 logger = logging.getLogger(__name__)
 
 
+# Words that should stay lowercase in title case (except at start)
+LOWERCASE_WORDS = {
+    'a', 'an', 'and', 'as', 'at', 'but', 'by', 'for', 'in', 'nor', 'of', 'on',
+    'or', 'so', 'the', 'to', 'up', 'yet', 'is', 'are', 'was', 'were', 'be',
+    'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would',
+    'could', 'should', 'may', 'might', 'must', 'shall', 'can', 'with', 'from',
+    'into', 'through', 'during', 'before', 'after', 'above', 'below', 'between',
+    'under', 'again', 'further', 'then', 'once', 'here', 'there', 'when', 'where',
+    'why', 'how', 'all', 'each', 'few', 'more', 'most', 'other', 'some', 'such',
+    'no', 'not', 'only', 'own', 'same', 'than', 'too', 'very', 'just', 'also'
+}
+
+# Acronyms that should stay uppercase
+COMMON_ACRONYMS = {
+    'AI', 'ML', 'NLP', 'API', 'CPU', 'GPU', 'IoT', 'USA', 'UK', 'EU', 'UN',
+    'WHO', 'GDP', 'CEO', 'CTO', 'CFO', 'HR', 'IT', 'R&D', 'B2B', 'B2C', 'SaaS',
+    'DNA', 'RNA', 'HIV', 'AIDS', 'COVID', 'MRI', 'CT', 'ICU', 'FDA', 'NIH',
+    'NASA', 'ESA', 'CERN', 'MIT', 'UCLA', 'IEEE', 'ACM', 'AAAI', 'NIST',
+    'ISO', 'GDPR', 'HIPAA', 'SOC', 'PCI', 'DSS', 'VPN', 'SSL', 'TLS', 'HTTP',
+    'HTTPS', 'SQL', 'NoSQL', 'REST', 'SOAP', 'JSON', 'XML', 'HTML', 'CSS', 'JS',
+    'PHP', 'AWS', 'GCP', 'ROI', 'KPI', 'CRM', 'ERP', 'SME', 'SMB', 'IPO', 'VC',
+    'PE', 'M&A', 'P&L', 'EBITDA', 'CAGR', 'YoY', 'QoQ', 'MoM', 'LTV', 'CAC',
+    'NPS', 'ARPU', 'DAU', 'MAU', 'WAU', 'UX', 'UI', 'PM', 'MVP', 'POC', 'UAT'
+}
+
+
+def normalize_title(title: str) -> str:
+    """
+    Normalize citation title capitalization.
+
+    Converts ALL CAPS titles to proper title case while:
+    - Keeping common acronyms uppercase (AI, ML, USA, etc.)
+    - Keeping lowercase words lowercase (except at start or after colon)
+    - Preserving mixed-case words as-is
+
+    Args:
+        title: Original title string
+
+    Returns:
+        Normalized title with proper capitalization
+    """
+    if not title:
+        return title
+
+    # Check if title is mostly ALL CAPS (>70% uppercase letters)
+    letters = [c for c in title if c.isalpha()]
+    if not letters:
+        return title
+
+    uppercase_ratio = sum(1 for c in letters if c.isupper()) / len(letters)
+
+    # Only normalize if >70% uppercase (likely ALL CAPS)
+    if uppercase_ratio < 0.7:
+        return title
+
+    words = title.split()
+    normalized_words = []
+    after_colon = False  # Track if previous word ended with colon
+
+    for i, word in enumerate(words):
+        # Strip punctuation for checking
+        clean_word = word.strip('.,;:!?()[]{}"\'-–—')
+        upper_clean = clean_word.upper()
+
+        # Check if previous word ended with colon (word after colon should be capitalized)
+        is_start_of_segment = (i == 0) or after_colon
+
+        # Check if it's a known acronym or acronym with numbers (COVID-19, etc.)
+        base_word = clean_word.split('-')[0].upper() if '-' in clean_word else upper_clean
+        if upper_clean in COMMON_ACRONYMS or base_word in COMMON_ACRONYMS:
+            # Preserve acronym but with original punctuation
+            # For hyphenated acronyms like COVID-19, preserve format
+            if '-' in clean_word:
+                parts = clean_word.split('-')
+                normalized_parts = []
+                for part in parts:
+                    if part.upper() in COMMON_ACRONYMS or part.isdigit():
+                        normalized_parts.append(part.upper())
+                    else:
+                        normalized_parts.append(part.capitalize())
+                normalized = word.replace(clean_word, '-'.join(normalized_parts))
+            else:
+                normalized = word.replace(clean_word, upper_clean)
+        # Check if it's a lowercase word (not at start of segment)
+        elif not is_start_of_segment and clean_word.lower() in LOWERCASE_WORDS:
+            normalized = word.lower()
+        else:
+            # Title case: capitalize first letter, lowercase rest
+            if clean_word:
+                title_cased = clean_word[0].upper() + clean_word[1:].lower()
+                normalized = word.replace(clean_word, title_cased)
+            else:
+                normalized = word
+
+        normalized_words.append(normalized)
+
+        # Check if this word ends with colon
+        after_colon = word.endswith(':')
+
+    result = ' '.join(normalized_words)
+
+    # Ensure first character is uppercase
+    if result and result[0].islower():
+        result = result[0].upper() + result[1:]
+
+    return result
+
+
 # Type definitions for citations
 CitationSourceType = Literal["journal", "book", "report", "website", "conference"]
 CitationStyle = Literal["APA 7th", "IEEE", "Chicago", "MLA"]
@@ -44,7 +152,7 @@ class Citation:
         self.id = citation_id
         self.authors = authors
         self.year = year
-        self.title = title
+        self.title = normalize_title(title)  # Normalize ALL CAPS titles to title case
         self.source_type = source_type
         self.language = language
         self.journal = journal
@@ -192,11 +300,17 @@ class CitationDatabase:
                 raise ValueError(f"Duplicate citation ID: {citation.id}")
             seen_ids.add(citation.id)
 
-            # Validate year range
+            # Validate and fix year range
             # FIXED (Bug #17): Dynamic year validation (current year + 2) instead of hardcoded 2025
-            max_year = datetime.now().year + 2
-            if not (1900 <= citation.year <= max_year):
-                raise ValueError(f"Citation {citation.id} has invalid year: {citation.year} (must be 1900-{max_year})")
+            # FIXED (Bug #XX): Clamp invalid years instead of failing entire generation
+            current_year = datetime.now().year
+            max_year = current_year + 2
+            if citation.year > max_year:
+                logger.warning(f"Citation {citation.id} has future year {citation.year}, clamping to {current_year}")
+                citation.year = current_year
+            elif citation.year < 1900:
+                logger.warning(f"Citation {citation.id} has invalid year {citation.year}, clamping to 1900")
+                citation.year = 1900
 
             # Validate DOI format if present
             if citation.doi and not citation.doi.startswith("10."):

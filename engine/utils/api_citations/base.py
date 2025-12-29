@@ -49,8 +49,9 @@ def _load_proxy_list() -> list:
     proxies = [p.strip() for p in proxy_env.split(',') if p.strip()]
 
     # Log proxy count (don't log credentials for security)
+    # Use DEBUG level to avoid showing in CLI mode
     if proxies:
-        logger.info(f"Loaded {len(proxies)} proxies for rotation")
+        logger.debug(f"Loaded {len(proxies)} proxies for rotation")
         # Validate format (basic check)
         for idx, proxy in enumerate(proxies, 1):
             parts = proxy.split(':')
@@ -172,7 +173,21 @@ class BaseAPIClient(ABC):
     - Rate limiting
     - Error handling
     - Request logging
+    - Client IP forwarding for distributed rate limits
     """
+
+    # Thread-local storage for client IP (set per-request context)
+    _client_ip_context: Optional[str] = None
+
+    @classmethod
+    def set_client_ip(cls, client_ip: Optional[str]) -> None:
+        """Set client IP for rate limit distribution (called per thesis context)."""
+        cls._client_ip_context = client_ip
+
+    @classmethod
+    def get_client_ip(cls) -> Optional[str]:
+        """Get current client IP context."""
+        return cls._client_ip_context
 
     def __init__(
         self,
@@ -252,6 +267,15 @@ class BaseAPIClient(ABC):
 
                 # Rotate User-Agent for each request to avoid rate limiting
                 headers = {"User-Agent": random.choice(USER_AGENTS)}
+
+                # Forward client IP for rate limit distribution (helps avoid 429 across users)
+                client_ip = self.get_client_ip()
+                if client_ip and client_ip != 'unknown':
+                    headers["X-Forwarded-For"] = client_ip
+
+                # Add API key header if available (e.g., Semantic Scholar uses x-api-key)
+                if self.api_key:
+                    headers["x-api-key"] = self.api_key
                 
                 # Select proxy for this request
                 proxy_str = random.choice(PROXY_LIST) if PROXY_LIST else None
@@ -360,15 +384,14 @@ class BaseAPIClient(ABC):
                             pass  # Unknown API type
 
                     # With proxies: minimal delay (next request uses different proxy)
-                    # Without proxies: exponential backoff
+                    # Without proxies: exponential backoff (Semantic Scholar needs longer waits)
                     if PROXY_LIST:
                         wait_time = 0.5  # Minimal delay, rely on proxy rotation
                     else:
-                        wait_time = 2**attempt  # Exponential backoff
-                        # Add backpressure delay on top of exponential backoff
-                        if bp:
-                            wait_time += bp.get_recommended_delay()
-                    logger.warning(f"Rate limited (429), waiting {wait_time:.1f}s before retry")
+                        # Exponential backoff: 3s, 6s, 12s, 24s, 48s for attempts 1-5
+                        # This gives Semantic Scholar time to reset rate limits
+                        wait_time = 3 * (2 ** attempt)
+                    logger.debug(f"Rate limited (429), waiting {wait_time:.1f}s before retry (attempt {attempt + 1}/{self.max_retries})")
                     time.sleep(wait_time)
                     continue
 
@@ -406,8 +429,9 @@ class BaseAPIClient(ABC):
                 logger.error(f"Unexpected error: {e}")
                 return None
 
-        # All retries exhausted
-        logger.error(f"All {self.max_retries} retry attempts failed for {url}")
+        # All retries exhausted - this is normal, other citation sources will be tried
+        # Using debug level since fallback to Crossref/Gemini Grounded handles this gracefully
+        logger.debug(f"API unavailable after {self.max_retries} retries: {url[:60]}... (fallback sources will be used)")
         return None
 
     @abstractmethod

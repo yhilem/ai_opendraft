@@ -23,6 +23,7 @@ class SemanticScholarClient(BaseAPIClient):
 
     def __init__(
         self,
+        api_key: Optional[str] = None,
         rate_limit_per_second: float = 5.0,
         timeout: int = 15,
         max_retries: int = 5,
@@ -31,15 +32,33 @@ class SemanticScholarClient(BaseAPIClient):
         Initialize Semantic Scholar API client.
 
         Args:
-            rate_limit_per_second: Maximum requests per second (S2 allows 100, we use 5 to avoid burst limits)
+            api_key: Optional S2 API key for higher rate limits (get free key at https://www.semanticscholar.org/product/api)
+            rate_limit_per_second: Maximum requests per second (S2 allows 100 with key, 1/sec without)
             timeout: Request timeout in seconds
             max_retries: Maximum retry attempts (increased for rate limit resilience)
         """
+        import os
+
+        # Use provided key or fall back to environment variable
+        self.s2_api_key = api_key or os.getenv('SEMANTIC_SCHOLAR_API_KEY')
+
+        # With API key: higher rate limit (100/sec allowed, we use 10 to be safe)
+        # Without API key: lower rate limit (1/sec enforced by S2)
+        if self.s2_api_key:
+            rate_limit_per_second = min(rate_limit_per_second, 10.0)
+            logger.info("Semantic Scholar: Using API key for higher rate limits")
+        else:
+            # Without key, S2 enforces 1 req/sec - use 0.5 to be safe
+            rate_limit_per_second = 0.5
+            logger.debug("Semantic Scholar: No API key, using conservative rate limit (0.5 req/sec)")
+
         super().__init__(
             base_url="https://api.semanticscholar.org",
+            api_key=self.s2_api_key,
             rate_limit_per_second=rate_limit_per_second,
             timeout=timeout,
             max_retries=max_retries,
+            api_type="semantic_scholar",
         )
 
     def search_paper(self, query: str) -> Optional[Dict[str, Any]]:

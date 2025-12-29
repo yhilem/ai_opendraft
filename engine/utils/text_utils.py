@@ -10,6 +10,221 @@ from typing import Optional
 logger = logging.getLogger(__name__)
 
 
+import re
+
+
+# Localized chapter names for post-processing
+CHAPTER_TRANSLATIONS = {
+    'de': {
+        'Introduction': 'Einleitung',
+        'Literature Review': 'Literaturübersicht',
+        'Methodology': 'Methodik',
+        'Results': 'Ergebnisse',
+        'Results and Analysis': 'Ergebnisse und Analyse',
+        'Analysis': 'Analyse',
+        'Discussion': 'Diskussion',
+        'Conclusion': 'Fazit',
+        'Conclusions': 'Fazit',
+        'References': 'Literaturverzeichnis',
+        'Bibliography': 'Bibliographie',
+        'Appendix': 'Anhang',
+        'Appendices': 'Anhänge',
+        'Abstract': 'Zusammenfassung',
+        'Summary': 'Zusammenfassung',
+        'Table of Contents': 'Inhaltsverzeichnis',
+        'List of Figures': 'Abbildungsverzeichnis',
+        'List of Tables': 'Tabellenverzeichnis',
+        'Acknowledgments': 'Danksagung',
+        'Acknowledgements': 'Danksagung',
+    },
+    'es': {
+        'Introduction': 'Introducción',
+        'Literature Review': 'Revisión de la Literatura',
+        'Methodology': 'Metodología',
+        'Results': 'Resultados',
+        'Results and Analysis': 'Resultados y Análisis',
+        'Analysis': 'Análisis',
+        'Discussion': 'Discusión',
+        'Conclusion': 'Conclusión',
+        'Conclusions': 'Conclusiones',
+        'References': 'Referencias',
+        'Bibliography': 'Bibliografía',
+        'Appendix': 'Apéndice',
+        'Appendices': 'Apéndices',
+        'Abstract': 'Resumen',
+        'Summary': 'Resumen',
+        'Table of Contents': 'Índice',
+        'List of Figures': 'Lista de Figuras',
+        'List of Tables': 'Lista de Tablas',
+        'Acknowledgments': 'Agradecimientos',
+        'Acknowledgements': 'Agradecimientos',
+    },
+    'fr': {
+        'Introduction': 'Introduction',
+        'Literature Review': 'Revue de la Littérature',
+        'Methodology': 'Méthodologie',
+        'Results': 'Résultats',
+        'Results and Analysis': 'Résultats et Analyse',
+        'Analysis': 'Analyse',
+        'Discussion': 'Discussion',
+        'Conclusion': 'Conclusion',
+        'Conclusions': 'Conclusions',
+        'References': 'Références',
+        'Bibliography': 'Bibliographie',
+        'Appendix': 'Annexe',
+        'Appendices': 'Annexes',
+        'Abstract': 'Résumé',
+        'Summary': 'Résumé',
+        'Table of Contents': 'Table des Matières',
+        'List of Figures': 'Liste des Figures',
+        'List of Tables': 'Liste des Tableaux',
+        'Acknowledgments': 'Remerciements',
+        'Acknowledgements': 'Remerciements',
+    },
+    'it': {
+        'Introduction': 'Introduzione',
+        'Literature Review': 'Revisione della Letteratura',
+        'Methodology': 'Metodologia',
+        'Results': 'Risultati',
+        'Results and Analysis': 'Risultati e Analisi',
+        'Analysis': 'Analisi',
+        'Discussion': 'Discussione',
+        'Conclusion': 'Conclusione',
+        'Conclusions': 'Conclusioni',
+        'References': 'Riferimenti',
+        'Bibliography': 'Bibliografia',
+        'Appendix': 'Appendice',
+        'Appendices': 'Appendici',
+        'Abstract': 'Sommario',
+        'Summary': 'Sommario',
+        'Table of Contents': 'Indice',
+        'List of Figures': 'Elenco delle Figure',
+        'List of Tables': 'Elenco delle Tabelle',
+        'Acknowledgments': 'Ringraziamenti',
+        'Acknowledgements': 'Ringraziamenti',
+    },
+    'pt': {
+        'Introduction': 'Introdução',
+        'Literature Review': 'Revisão da Literatura',
+        'Methodology': 'Metodologia',
+        'Results': 'Resultados',
+        'Results and Analysis': 'Resultados e Análise',
+        'Analysis': 'Análise',
+        'Discussion': 'Discussão',
+        'Conclusion': 'Conclusão',
+        'Conclusions': 'Conclusões',
+        'References': 'Referências',
+        'Bibliography': 'Bibliografia',
+        'Appendix': 'Apêndice',
+        'Appendices': 'Apêndices',
+        'Abstract': 'Resumo',
+        'Summary': 'Resumo',
+        'Table of Contents': 'Índice',
+        'List of Figures': 'Lista de Figuras',
+        'List of Tables': 'Lista de Tabelas',
+        'Acknowledgments': 'Agradecimentos',
+        'Acknowledgements': 'Agradecimentos',
+    },
+}
+
+
+def localize_chapter_headings(text: str, language: str) -> str:
+    """
+    Replace English chapter/section headings with localized versions.
+
+    This is a post-processing step to ensure chapter names like
+    "Conclusion" become "Fazit" in German, etc.
+
+    Args:
+        text: Input text with potential English headings
+        language: Target language code ('de', 'es', 'fr', 'it', 'pt')
+
+    Returns:
+        Text with localized chapter headings
+    """
+    # Normalize language code
+    lang = language.split('-')[0].lower() if language else 'en'
+
+    # Skip if English or no translations available
+    if lang == 'en' or lang not in CHAPTER_TRANSLATIONS:
+        return text
+
+    translations = CHAPTER_TRANSLATIONS[lang]
+
+    # Replace headings (handle markdown heading formats)
+    # Sort by length descending to replace longer phrases first
+    for english, localized in sorted(translations.items(), key=lambda x: -len(x[0])):
+        escaped_english = re.escape(english)
+
+        # Pattern 1: Numbered headings like "# 1. Introduction" or "## 2.1 Literature Review"
+        # Must come before standard headings to match more specific pattern first
+        pattern1 = rf'^(#+)\s+(\d+\.?\d*\.?)\s+{escaped_english}\s*$'
+        text = re.sub(pattern1, rf'\1 \2 {localized}', text, flags=re.MULTILINE | re.IGNORECASE)
+
+        # Pattern 2: Standard markdown headings: # Conclusion, ## Conclusion
+        pattern2 = rf'^(#+)\s+{escaped_english}\s*$'
+        text = re.sub(pattern2, rf'\1 {localized}', text, flags=re.MULTILINE | re.IGNORECASE)
+
+        # Pattern 3: Bold headings like "**Introduction**"
+        pattern3 = rf'\*\*{escaped_english}\*\*'
+        text = re.sub(pattern3, f'**{localized}**', text, flags=re.IGNORECASE)
+
+    return text
+
+
+def strip_meta_text(text: str) -> str:
+    """
+    Remove AI-generated meta text that should never appear in final thesis.
+
+    Strips patterns like:
+    - "Abschnitt: X Wortzahl: X Wörter Status: X" (German)
+    - "Section: X Word count: X words Status: X" (English)
+    - "Sección: X Recuento de palabras: X palabras Estado: X" (Spanish)
+    - Similar patterns on their own lines
+
+    Args:
+        text: Input text potentially containing meta text
+
+    Returns:
+        Text with meta text removed
+    """
+    # Patterns to remove (case-insensitive, multiline)
+    meta_patterns = [
+        # German meta text patterns
+        r'^[\*\s]*Abschnitt:\s*[^\n]+\s*Wortzahl:\s*[\d\.,]+\s*Wörter?\s*(?:Status:\s*[^\n]+)?[\*\s]*$',
+        r'^[\*\s]*Wortzahl:\s*[\d\.,]+\s*Wörter?[\*\s]*$',
+        r'^[\*\s]*Status:\s*(?:Entwurf|Draft)\s*v?\d*[\*\s]*$',
+
+        # English meta text patterns
+        r'^[\*\s]*Section:\s*[^\n]+\s*Word\s*[Cc]ount:\s*[\d\.,]+\s*words?\s*(?:Status:\s*[^\n]+)?[\*\s]*$',
+        r'^[\*\s]*Word\s*[Cc]ount:\s*[\d\.,]+\s*words?[\*\s]*$',
+        r'^[\*\s]*Status:\s*Draft\s*v?\d*[\*\s]*$',
+
+        # Spanish meta text patterns
+        r'^[\*\s]*Sección:\s*[^\n]+\s*Recuento\s*de\s*palabras:\s*[\d\.,]+\s*palabras?\s*(?:Estado:\s*[^\n]+)?[\*\s]*$',
+        r'^[\*\s]*Recuento\s*de\s*palabras:\s*[\d\.,]+\s*palabras?[\*\s]*$',
+        r'^[\*\s]*Estado:\s*Borrador\s*v?\d*[\*\s]*$',
+
+        # French meta text patterns
+        r'^[\*\s]*Section:\s*[^\n]+\s*Nombre\s*de\s*mots:\s*[\d\.,]+\s*mots?\s*(?:Statut:\s*[^\n]+)?[\*\s]*$',
+        r'^[\*\s]*Nombre\s*de\s*mots:\s*[\d\.,]+\s*mots?[\*\s]*$',
+        r'^[\*\s]*Statut:\s*Brouillon\s*v?\d*[\*\s]*$',
+
+        # Generic patterns that catch remaining meta text
+        r'^\*{2}(?:Section|Abschnitt|Sección):\*{2}\s*[^\n]+$',
+        r'^\*{2}(?:Word\s*Count|Wortzahl|Recuento\s*de\s*palabras|Nombre\s*de\s*mots):\*{2}\s*[\d\.,]+\s*(?:words?|Wörter?|palabras?|mots?)?$',
+        r'^\*{2}Status:\*{2}\s*(?:Draft|Entwurf|Borrador|Brouillon)\s*v?\d*$',
+    ]
+
+    for pattern in meta_patterns:
+        text = re.sub(pattern, '', text, flags=re.MULTILINE | re.IGNORECASE)
+
+    # Clean up multiple consecutive blank lines left behind
+    text = re.sub(r'\n{3,}', '\n\n', text)
+
+    return text.strip()
+
+
 def smart_truncate(
     text: str,
     max_chars: int = 8000,

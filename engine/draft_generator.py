@@ -19,6 +19,12 @@ Output Structure:
 """
 
 import sys
+import warnings
+
+# Suppress deprecation warnings from dependencies before any imports
+warnings.filterwarnings("ignore", category=FutureWarning)
+warnings.filterwarnings("ignore", category=DeprecationWarning)
+
 import time
 import shutil
 import json
@@ -30,6 +36,9 @@ import psutil
 import os
 from typing import Tuple, Optional, List, Dict
 from datetime import datetime
+
+# Suppress WeasyPrint stderr warnings
+os.environ['WEASYPRINT_QUIET'] = '1'
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -85,10 +94,98 @@ from utils.abstract_generator import generate_abstract_for_draft
 from utils.export_professional import export_pdf, export_docx
 
 
+# =============================================================================
+# LOCALIZATION: Chapter and section names in different languages
+# =============================================================================
+CHAPTER_NAMES = {
+    'en': {
+        'introduction': 'Introduction',
+        'literature_review': 'Literature Review',
+        'methodology': 'Methodology',
+        'results': 'Results and Analysis',
+        'discussion': 'Discussion',
+        'conclusion': 'Conclusion',
+        'references': 'References',
+        'appendix': 'Appendix',
+    },
+    'de': {
+        'introduction': 'Einleitung',
+        'literature_review': 'Literaturübersicht',
+        'methodology': 'Methodik',
+        'results': 'Ergebnisse und Analyse',
+        'discussion': 'Diskussion',
+        'conclusion': 'Fazit',
+        'references': 'Literaturverzeichnis',
+        'appendix': 'Anhang',
+    },
+    'es': {
+        'introduction': 'Introducción',
+        'literature_review': 'Revisión de la Literatura',
+        'methodology': 'Metodología',
+        'results': 'Resultados y Análisis',
+        'discussion': 'Discusión',
+        'conclusion': 'Conclusión',
+        'references': 'Referencias',
+        'appendix': 'Apéndice',
+    },
+    'fr': {
+        'introduction': 'Introduction',
+        'literature_review': 'Revue de la Littérature',
+        'methodology': 'Méthodologie',
+        'results': 'Résultats et Analyse',
+        'discussion': 'Discussion',
+        'conclusion': 'Conclusion',
+        'references': 'Références',
+        'appendix': 'Annexe',
+    },
+    'it': {
+        'introduction': 'Introduzione',
+        'literature_review': 'Revisione della Letteratura',
+        'methodology': 'Metodologia',
+        'results': 'Risultati e Analisi',
+        'discussion': 'Discussione',
+        'conclusion': 'Conclusione',
+        'references': 'Riferimenti',
+        'appendix': 'Appendice',
+    },
+    'pt': {
+        'introduction': 'Introdução',
+        'literature_review': 'Revisão da Literatura',
+        'methodology': 'Metodologia',
+        'results': 'Resultados e Análise',
+        'discussion': 'Discussão',
+        'conclusion': 'Conclusão',
+        'references': 'Referências',
+        'appendix': 'Apêndice',
+    },
+}
+
+
+def get_chapter_name(chapter_key: str, language: str = 'en') -> str:
+    """
+    Get localized chapter name.
+
+    Args:
+        chapter_key: Key like 'introduction', 'conclusion', etc.
+        language: Language code ('en', 'de', 'es', 'fr', 'it', 'pt')
+
+    Returns:
+        Localized chapter name, or English fallback if not found
+    """
+    # Normalize language code (handle 'en-US' -> 'en', 'de-DE' -> 'de')
+    lang = language.split('-')[0].lower() if language else 'en'
+
+    # Get language dict, fallback to English
+    lang_dict = CHAPTER_NAMES.get(lang, CHAPTER_NAMES['en'])
+
+    # Get chapter name, fallback to English if key not found
+    return lang_dict.get(chapter_key, CHAPTER_NAMES['en'].get(chapter_key, chapter_key.replace('_', ' ').title()))
+
+
 def setup_output_folders(output_dir: Path) -> Dict[str, Path]:
     """
     Create the organized folder structure for draft output.
-    
+
     Returns dict with paths to all subdirectories.
     """
     folders = {
@@ -689,7 +786,11 @@ def generate_draft(
     try:
         config = get_config()
 
-        if verbose:
+        # Check if CLI quiet mode is enabled (suppress technical headers)
+        from utils.api_citations.orchestrator import _verbose_research
+        cli_quiet_mode = not _verbose_research
+
+        if verbose and not cli_quiet_mode:
             print("="*70)
             print("DRAFT GENERATION - AUTOMATED WORKFLOW")
             print("="*70)
@@ -724,7 +825,7 @@ def generate_draft(
         folders = setup_output_folders(output_dir)
         logger.info(f"[SETUP] Created folders: {', '.join(folders.keys())}")
 
-        if verbose:
+        if verbose and not cli_quiet_mode:
             print(f"📁 Output folder: {output_dir}")
 
         # Prepare research topics (simplified for automated runs)
@@ -785,13 +886,16 @@ def generate_draft(
                 print(f"✅ Scout: {scout_result['count']} citations found")
 
             if tracker:
-                # Log each source found to activity feed
+                # Log each source found to activity feed with rich data
                 for i, citation in enumerate(scout_result.get('citations', [])[:10]):  # Show first 10
                     tracker.log_source_found(
                         title=citation.title,
                         authors=citation.authors[:3] if citation.authors else None,
                         year=citation.year,
-                        source_type=citation.api_source or "paper"
+                        source_type=citation.api_source or "paper",
+                        doi=getattr(citation, 'doi', None),
+                        url=getattr(citation, 'url', None),
+                        verified=True
                     )
                 # If more than 10, show summary
                 if len(scout_result.get('citations', [])) > 10:
@@ -1245,7 +1349,7 @@ Outline:
 - **NEVER claim "we conducted studies"** - This is a literature review draft, not an empirical study
 - **NEVER invent datasets** (e.g., "Dataset X-500", "we analyzed 10,000 samples")
 - **NEVER fabricate experimental procedures** (e.g., "we ran experiments on...")
-- **ONLY describe methodologies from cited literature** - Use "Previous research {cite_XXX} used..." not "We used..."
+- **ONLY describe methodologies from cited literature** - Use "Previous research {{cite_XXX}} used..." not "We used..."
 - **Use hypothetical/theoretical language** for proposed approaches: "A potential methodology might involve..." not "We implemented..."
 - **Focus on synthesizing existing research methods**, not claiming to have conducted new research
 
@@ -1257,7 +1361,7 @@ Outline:
 - Tools and technologies used - from literature, not "we used"
 - Study limitations and considerations - theoretical discussion
 
-**Connect to Literature Review:** "To address the gap identified in section 2.1 regarding X, a potential methodology could follow approaches described in {cite_XXX}..."**""",
+**Connect to Literature Review:** "To address the gap identified in section 2.1 regarding X, a potential methodology could follow approaches described in {{cite_XXX}}..."**""",
                 save_to=folders['drafts'] / "02_2_methodology.md",
                 skip_validation=skip_validation,
                 verbose=verbose
@@ -1335,8 +1439,8 @@ Research data:
 - **NEVER claim "we found", "we analyzed", "our results show"** - This is a literature review, not an empirical study
 - **NEVER invent data, statistics, or results** (e.g., "we found 87% accuracy", "our analysis revealed...")
 - **NEVER fabricate datasets or sample sizes** (e.g., "Dataset X-500", "we analyzed 10,000 samples")
-- **ONLY present findings from cited literature** - Use "Research by {cite_001} found..." not "We found..."
-- **ONLY use data/statistics from cited sources** - All numbers must come from {cite_XXX} references
+- **ONLY present findings from cited literature** - Use "Research by {{cite_001}} found..." not "We found..."
+- **ONLY use data/statistics from cited sources** - All numbers must come from {{cite_XXX}} references
 - **Synthesize existing research findings**, not claim to have conducted new analysis
 - **Use language like:** "Studies have shown...", "Research indicates...", "Findings suggest..." NOT "We found...", "Our analysis..."
 
@@ -1425,7 +1529,7 @@ Research gaps addressed:
 **🚨 CRITICAL ANTI-HALLUCINATION RULES:**
 - **NEVER claim "our results", "our findings", "we conclude"** - This is a literature review, not an empirical study
 - **NEVER invent conclusions or implications** from non-existent research
-- **ONLY discuss findings from cited literature** - Use "Research findings {cite_001} suggest..." not "Our findings suggest..."
+- **ONLY discuss findings from cited literature** - Use "Research findings {{cite_001}} suggest..." not "Our findings suggest..."
 - **Synthesize existing research**, not claim to have conducted new analysis
 - **Use language like:** "The literature suggests...", "Research indicates...", "Studies have shown..." NOT "We found...", "Our analysis..."
 
@@ -1445,9 +1549,9 @@ You MUST include these explicit phrases to connect back to previous sections:
 2. "The findings FROM LITERATURE presented in section 2.3..." (refer to synthesized results)
 3. "Compared to the theoretical framework in section 2.1..."
 4. "These findings FROM CITED RESEARCH confirm/contradict [Author's] findings discussed in section 2.1..."
-5. "The research gap identified in section 2.1 has been addressed by findings from {cite_XXX}..."
+5. "The research gap identified in section 2.1 has been addressed by findings from {{cite_XXX}}..."
 
-**Example opening:** "The findings FROM LITERATURE synthesized in section 2.3 reveal significant insights that both align with and extend the theoretical frameworks discussed in section 2.1. As noted in the literature review (section 2.1), previous studies by [Author] {cite_001} demonstrated [X]; research findings {cite_002}{cite_003} confirm this relationship while also revealing [new insight]."
+**Example opening:** "The findings FROM LITERATURE synthesized in section 2.3 reveal significant insights that both align with and extend the theoretical frameworks discussed in section 2.1. As noted in the literature review (section 2.1), previous studies by [Author] {{cite_001}} demonstrated [X]; research findings {{cite_002}}{{cite_003}} confirm this relationship while also revealing [new insight]."
 
 **Remember:** Explicitly reference "section 2.1" at least 3-5 times throughout the Discussion to maintain strong academic coherence. ALWAYS cite sources for any findings discussed.**""",
                 save_to=folders['drafts'] / "02_4_discussion.md",
@@ -2037,15 +2141,24 @@ generated_by: "OpenDraft AI - https://github.com/federicodeponte/opendraft"
             # Fallback: use compiled draft without abstract
             final_draft = compiled_draft
 
+        # Generate professional filename from topic
+        base_filename = slugify(topic, max_length=50)
+        if not base_filename:
+            base_filename = "research_paper"
+
         # Save final markdown
-        final_md_path = folders['exports'] / "FINAL_DRAFT.md"
+        final_md_path = folders['exports'] / f"{base_filename}.md"
         # Fix single-line tables before saving
         final_draft = fix_single_line_tables(final_draft)
         final_draft = deduplicate_appendices(final_draft)
         final_draft = clean_malformed_markdown(final_draft)
         # Clean AI language patterns (em dashes, overused words)
-        from utils.text_utils import clean_ai_language
+        from utils.text_utils import clean_ai_language, strip_meta_text, localize_chapter_headings
         final_draft = clean_ai_language(final_draft)
+        # Remove any AI-generated meta text (Section:, Word count:, Status:, etc.)
+        final_draft = strip_meta_text(final_draft)
+        # Localize chapter headings (e.g., "Conclusion" → "Fazit" in German)
+        final_draft = localize_chapter_headings(final_draft, language)
         final_md_path.write_text(final_draft, encoding='utf-8')
 
         if verbose:
@@ -2063,7 +2176,7 @@ generated_by: "OpenDraft AI - https://github.com/federicodeponte/opendraft"
             tracker.check_cancellation()  # Check before starting major phase
 
         # Export to PDF with error handling - Professional formatting
-        pdf_path = folders['exports'] / "FINAL_DRAFT.pdf"
+        pdf_path = folders['exports'] / f"{base_filename}.pdf"
 
         if tracker:
             tracker.log_activity("📑 Generating professional PDF document...", event_type="info", phase="exporting")
@@ -2089,7 +2202,7 @@ generated_by: "OpenDraft AI - https://github.com/federicodeponte/opendraft"
             tracker.log_activity("📝 Creating Word document...", event_type="info", phase="exporting")
 
         # Export to DOCX with error handling
-        docx_path = folders['exports'] / "FINAL_DRAFT.docx"
+        docx_path = folders['exports'] / f"{base_filename}.docx"
         docx_success = export_docx(
             md_file=final_md_path,
             output_docx=docx_path
@@ -2097,9 +2210,22 @@ generated_by: "OpenDraft AI - https://github.com/federicodeponte/opendraft"
     
         if not docx_success or not docx_path.exists():
             raise RuntimeError(f"DOCX export failed - file not created: {docx_path}")
-        
+
         if tracker:
             tracker.log_activity("✅ Word document ready", event_type="found", phase="exporting")
+
+        # Create ZIP bundle with all exports
+        zip_path = folders['exports'] / f"{base_filename}.zip"
+        try:
+            import zipfile
+            with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zf:
+                zf.write(pdf_path, pdf_path.name)
+                zf.write(docx_path, docx_path.name)
+                zf.write(final_md_path, final_md_path.name)
+            if tracker:
+                tracker.log_activity("📦 ZIP bundle created", event_type="found", phase="exporting")
+        except Exception as zip_error:
+            logger.warning(f"ZIP creation failed (non-critical): {zip_error}")
 
         if tracker:
             tracker.log_activity("✅ Word document generated", event_type="found", phase="exporting")
