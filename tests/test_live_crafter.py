@@ -166,6 +166,28 @@ def main():
         }
     )
 
+    # Test 3: Named entity citation (TICKET-003)
+    results["named_entity"] = run_crafter_test(
+        "Named Entity Citation (TICKET-003)",
+        """
+        Write a paragraph about deep learning epigenetic clocks for a literature review.
+
+        Mention these specific tools by name and cite them correctly:
+        - DeepMAge (created by Galkin et al.)
+        - GrimAge (created by Lu et al.)
+
+        Available citations:
+        - cite_001: Galkin et al. (2021) "DeepMAge: A Deep Learning Approach..." (DeepMAge origin paper)
+        - cite_002: Lu et al. (2019) "DNA methylation GrimAge..." (GrimAge origin paper)
+        - cite_003: Smith et al. (2022) "Deep learning methods for age prediction" (general concept paper)
+
+        Use the correct citation IDs for each named tool.
+        """,
+        checks={
+            "required_any": [("cite_001", "cite_002", "DeepMAge", "GrimAge")],
+        }
+    )
+
     # Summary
     print("\n" + "="*60)
     print("SUMMARY")
