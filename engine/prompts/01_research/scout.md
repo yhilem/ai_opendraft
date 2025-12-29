@@ -66,6 +66,35 @@ Remove:
 - ❌ Non-English papers (unless specified)
 - ❌ Duplicate entries
 
+### ⚠️ PREPRINT HANDLING (Critical)
+
+**Always prefer journal-published versions over preprints.**
+
+When you find a preprint (bioRxiv, medRxiv, arXiv, SSRN):
+
+1. **Check for published version first**
+   - Search CrossRef/Semantic Scholar for the paper title + authors
+   - If journal version exists → Use that instead of preprint
+
+2. **Preprint age matters**
+   - <12 months old, no journal version → Acceptable (recent work)
+   - 12-24 months old, no journal version → Flag as "awaiting peer review"
+   - >24 months old, no journal version → Avoid if possible (may indicate quality issues)
+
+3. **When including preprints**
+   - Note that it's a preprint in the venue field
+   - Include preprint DOI (e.g., `10.1101/...`)
+   - Add flag: `"preprint": true`
+
+**Example:**
+```json
+// ❌ BAD: Using old preprint when journal version exists
+{"venue": "bioRxiv", "year": 2021, "doi": "10.1101/2021.03.15.484321"}
+
+// ✅ GOOD: Using published journal version
+{"venue": "Nature Communications", "year": 2022, "doi": "10.1038/s41467-022-12345-6"}
+```
+
 ### Step 4: Rank Results
 
 Rank papers by:

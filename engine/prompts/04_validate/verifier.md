@@ -114,6 +114,61 @@ For each named tool/method mentioned:
 
 ---
 
+## ⚠️ PREPRINT UPDATE CHECK
+
+**Citing preprints when journal versions exist looks amateurish.**
+
+Academic papers should cite the peer-reviewed, published version when available. Preprints (bioRxiv, medRxiv, arXiv, SSRN) should only be cited when no journal version exists yet.
+
+### 7. Preprint Detection
+
+Identify preprint citations by:
+- URL contains: bioRxiv, medRxiv, arXiv, SSRN, preprints.org
+- DOI pattern: `10.1101/` (bioRxiv/medRxiv), `arXiv:` prefix
+- Venue listed as "preprint" or "not peer-reviewed"
+
+### 8. Published Version Check
+
+For each preprint citation:
+1. **Search for journal version** in CrossRef/Semantic Scholar
+2. **Check publication date** — if preprint is >18 months old, journal version likely exists
+3. **Update citation** if published version found
+4. **Flag stale preprints** — preprints >2 years old without journal publication
+
+### Preprint Audit Checklist
+
+For each preprint in the reference list:
+- [ ] Is there a published journal version? (Check CrossRef)
+- [ ] If yes → Replace preprint with journal citation
+- [ ] If no + preprint >18 months old → Flag as "awaiting peer review"
+- [ ] If no + preprint <12 months old → Acceptable (recent work)
+
+### Output for Preprint Issues
+
+```
+⚠️ PREPRINT UPDATE NEEDED
+
+**Citation [15]:** bioRxiv preprint (posted March 2022)
+- **Current:** "Smith et al. (2022). bioRxiv. doi:10.1101/2022.03.15.484321"
+- **Published version found:** Nature Communications (2023)
+- **Update to:** "Smith et al. (2023). Nat Commun 14, 1234. doi:10.1038/s41467-023-12345-6"
+
+**Citation [28]:** arXiv preprint (posted 2021)
+- **Status:** 3+ years old, no journal version found
+- **Flag:** ⚠️ Cite with caution — not peer-reviewed
+```
+
+### Preprint Preference Rules
+
+| Situation | Action |
+|-----------|--------|
+| Journal version exists | ✅ Use journal version |
+| Preprint <12 months, no journal | ✅ Acceptable |
+| Preprint 12-24 months, no journal | ⚠️ Note "preprint, awaiting peer review" |
+| Preprint >24 months, no journal | 🔴 Flag — may indicate quality issues |
+
+---
+
 ## Output Format
 
 ```markdown
