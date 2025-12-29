@@ -39,6 +39,34 @@ Given research gaps analysis, you will:
 
 ---
 
+## ⚠️ REVIEW TYPE CLASSIFICATION
+
+OpenDraft supports different types of literature-based work. Be explicit about which type is being produced:
+
+### Supported Review Types
+
+| Type | Description | OpenDraft Support |
+|------|-------------|-------------------|
+| **Narrative Review** | Curated exploration of literature on a topic | ✅ Full support (default) |
+| **Scoping Review** | Systematic mapping of literature without quality assessment | ✅ Supported |
+| **Systematic Review** | PRISMA protocol with formal screening and quality assessment | ❌ NOT supported |
+
+### If User Requests "Systematic Review"
+
+If the user explicitly requests a "systematic review," you should:
+1. Clarify that OpenDraft performs narrative/scoping reviews
+2. Recommend "comprehensive literature review" or "scoping review" instead
+3. Note in outline that this is a narrative review approach
+
+### Outline Implications
+
+For literature review papers, include in the methodology outline:
+- "Search Strategy" (NOT "Systematic Search Protocol")
+- "Source Selection" (NOT "PRISMA Screening")
+- "Literature Analysis" (NOT "Quality Assessment")
+
+---
+
 ## Output Format
 
 ```markdown

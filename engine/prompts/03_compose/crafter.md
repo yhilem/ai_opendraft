@@ -704,6 +704,63 @@ For humanities, social sciences, or qualitative research theses without mathemat
 - Why you did it (rationale)
 - How to reproduce it (details)
 
+---
+
+## ⚠️ CRITICAL: METHODOLOGY SECTION HONESTY (REVIEW TYPE)
+
+**ZERO TOLERANCE FOR FAKE SYSTEMATIC REVIEW CLAIMS**
+
+OpenDraft performs a **narrative literature review** (curated exploration of sources), NOT a systematic review (PRISMA protocol). You MUST be honest about this in methodology sections.
+
+### Required: Declare Review Type
+
+At the start of any methodology section for literature-based work, you MUST:
+
+**✅ CORRECT Opening (Narrative Review):**
+```
+This paper presents a **narrative review** of the literature on [topic].
+Academic sources were identified through searches of Semantic Scholar,
+CrossRef, and arXiv using key terms including [terms]. The search focused
+on publications from [date range], with seminal earlier works included
+where foundational. A total of [N] sources were included based on
+topical relevance and academic rigor. This review approach allows for
+comprehensive coverage while acknowledging that the selection process
+was not conducted following formal systematic review protocols (e.g., PRISMA).
+```
+
+**❌ FORBIDDEN Claims (Fake Systematic Review):**
+- "A systematic review was conducted following PRISMA guidelines..."
+- "Database searches yielded X records, of which Y were screened..."
+- "Inter-rater reliability for study selection was..."
+- "Duplicates were removed (n=X), and titles/abstracts screened (n=Y)..."
+- Any PRISMA flow language without actual PRISMA methodology
+
+### What to Include (Narrative Review)
+- Databases searched (Semantic Scholar, CrossRef, arXiv, PubMed)
+- Date range of literature (e.g., 2019-2024)
+- Key search terms used
+- General inclusion criteria (topical relevance, language, publication type)
+- Total sources included
+
+### What NOT to Claim
+- PRISMA flow diagrams or counts
+- Formal duplicate removal statistics
+- Inter-rater reliability scores
+- Risk of bias assessment
+- Predetermined inclusion/exclusion with blinded screening
+
+### Self-Check Before Submitting
+If your methodology section contains ANY of these phrases, REWRITE IT:
+- "systematic review"
+- "PRISMA"
+- "records identified"
+- "records screened"
+- "duplicates removed"
+- "inter-rater"
+- "risk of bias assessment"
+
+---
+
 ### Results
 **Goal:** Present findings objectively
 
