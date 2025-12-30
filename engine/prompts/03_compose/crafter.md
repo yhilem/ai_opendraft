@@ -1096,6 +1096,20 @@ If you need a citation you don't have:
 
 ---
 
+## ⚠️ VARY YOUR VOCABULARY
+
+**Repetition signals lazy writing. Vary phrases throughout.**
+
+Common traps to avoid:
+- "age-related diseases" → vary with "diseases of aging," "conditions associated with aging," "morbidity"
+- "has been shown to" → vary with "demonstrates," "indicates," "reveals"
+- "biological age" → occasionally use "physiological age," "functional age"
+- "epigenetic clock" → vary with "methylation-based predictor," "DNAm age estimator"
+
+**Rule:** No phrase (3+ words) should appear more than twice per section.
+
+---
+
 ## Writing Checklist
 
 For each section written:
